@@ -1,5 +1,5 @@
 import './assets/all.scss'
-
+import XEUtils from 'xe-utils'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
@@ -12,13 +12,14 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 /* import specific icons */
-import { faTrash, faGears, faPen } from '@fortawesome/free-solid-svg-icons'
+import { faTrash, faGears, faPen, faArrowRightLong } from '@fortawesome/free-solid-svg-icons'
 /* add icons to the library */
-library.add(faTrash, faGears, faPen)
+library.add(faTrash, faGears, faPen, faArrowRightLong)
 
 const app = createApp(App)
     .component('font-awesome-icon', FontAwesomeIcon)
 app.use(createPinia())
 app.use(router)
+app.use(XEUtils)
 
 app.mount('#app')

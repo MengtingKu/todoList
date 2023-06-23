@@ -1,5 +1,5 @@
 <template>
-  <div class="my-5">
+  <div>
     <RouterView />
   </div>
 </template>

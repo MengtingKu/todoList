@@ -1,11 +1,17 @@
 <template>
   <div class="container shadow rounded all">
-    <header class="d-flex align-items-center justify-content-between my-3 header">
-      <h2 class="title">H E L L O ! K U K U</h2>
-      <h1 class="subtitle">
-        <p>{{ today }}</p>
-        <p>Today I need to do something ʕ̯•͡ˑ͓•̯᷅ʔ</p>
-      </h1>
+    <header class="header">
+      <div class="row d-flex align-items-center justify-content-between">
+        <div class="col-md-8">
+          <h2 class="title">H E L L O ! K U K U</h2>
+        </div>
+        <div class="col-md-4">
+          <h1 class="subtitle">
+            <p>{{ today }}</p>
+            <p>Today I need to do something ʕ̯•͡ˑ͓•̯᷅ʔ</p>
+          </h1>
+        </div>
+      </div>
     </header>
     <div class="input-group my-5 enter_text">
       <input
@@ -26,8 +32,9 @@
     </div>
     <section class="process">
       <h3 class="fw-bolder font-monospace text-center fs-5">
-        任務進度 {{ todoList.completed.length }}/{{ todoLists.length }}
+        任務進度 {{ completedTodosLength }}/{{ todos.length }}
       </h3>
+
       <div
         class="progress"
         role="progressbar"
@@ -39,41 +46,43 @@
         <div class="progress-bar bar_box" :style="{ width: process }">{{ process }}</div>
       </div>
     </section>
-    <div v-if="!todoLists.length" class="d-flex justify-content-center my-5">
+    <div v-if="!todos.length" class="d-flex justify-content-center my-5">
       <font-awesome-icon icon="fa-solid fa-gears" class="fa-xl" />
-      <h3 class="fs-6 ms-2">寫下你的目標，然後吃掉一個冰塊作為獎勵。</h3>
+      <h3 class="fs-6 ms-2">寫下你的目標，完成後吃掉一顆冰塊作為獎勵。</h3>
     </div>
     <div v-else class="card my-5 todo_list">
       <ul class="d-flex text-center p-0 tab">
         <li
-          v-for="btn in btnList"
-          :key="btn.id"
+          v-for="(item, index) in btnList"
+          :key="`${index}-${item.id}`"
           class="p-3 w-100"
-          :class="{ active: btn.completed === true }"
-          @click="changeStatus(btn)"
+          :class="{ active: visibility === item.value }"
+          @click="visibility = item.value"
         >
-          {{ btn.text }}
-          <span v-if="btn.id === 1" class="badge rounded-pill ms-5 badge_bg">{{
-            todoList.all.length
+          {{ item.text }}
+          <span v-if="item.id === 1" class="badge rounded-pill ms-5 badge_bg">{{
+            todos.length
           }}</span>
-          <span v-else-if="btn.id === 2" class="badge rounded-pill ms-5 badge_bg">{{
-            todoList.pending.length
+          <span v-else-if="item.id === 2" class="badge rounded-pill ms-5 badge_bg">{{
+            pendingTodosLength
           }}</span>
-          <span v-else-if="btn.id === 3" class="badge rounded-pill ms-5 badge_bg">{{
-            todoList.completed.length
+          <span v-else-if="item.id === 3" class="badge rounded-pill ms-5 badge_bg">{{
+            completedTodosLength
           }}</span>
         </li>
       </ul>
       <div class="p-3 list_content">
         <ul class="p-0 list">
-          <li
-            v-for="item in filteredTodos"
-            :key="item.id"
-            class="p-1 w-100"
-          >
+          <li v-for="item in filteredTodos" :key="item.id" class="p-1 w-100">
             <div class="row d-flex align-items-center justify-content-between">
               <div class="col-md-10 checkbox">
-                <input type="checkbox" class="me-2" :id="item.id" v-model="item.completed" />
+                <input
+                  type="checkbox"
+                  class="me-2"
+                  :id="item.id"
+                  v-model="item.completed"
+                  @click="changeCompleted(item.id)"
+                />
                 <input
                   v-if="item.editing"
                   type="text"
@@ -91,17 +100,25 @@
                 >
               </div>
               <div class="col-md-2 d-flex align-items-center justify-content-end">
-                <font-awesome-icon icon="fa-solid fa-pen" class="p-2 edit" @click="item.editing = !item.editing" v-if="!item.editing"/>
-                <font-awesome-icon icon="fa-solid fa-trash" class="ms-2 p-2 delete" @click="removeItem(item.id)"
-              />
+                <font-awesome-icon
+                  v-if="!item.editing"
+                  icon="fa-solid fa-pen"
+                  class="p-2 edit"
+                  @click="item.editing = !item.editing"
+                />
+                <font-awesome-icon
+                  icon="fa-solid fa-trash"
+                  class="ms-2 p-2 delete"
+                  @click="removeItem(item.id)"
+                />
               </div>
             </div>
           </li>
         </ul>
         <hr />
         <div class="d-flex align-items-center justify-content-between list_footer">
-          <p class="">{{ todoList.pending.length }} 個待完成項目</p>
-          <a href="javascript:void(0);" @click="deleteAllTodoItem">清除已完成項目</a>
+          <p>{{ pendingTodosLength }} 個待完成項目</p>
+          <a href="javascript:void(0);" @click="deleteAllTodoItem">清除所有項目</a>
         </div>
       </div>
     </div>
@@ -109,89 +126,63 @@
 </template>
 
 <script setup>
-import { computed, watch, onMounted, ref, reactive } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import XEUtils from 'xe-utils'
+import Swal from 'sweetalert2'
+import sweetAlert from '@/mixin/sweetAlert'
 
-const day = new Date()
 const today = ref('')
 const newTodo = ref('')
-const todoLists = ref([])
-const todoList = reactive({
-  all: [],
-  pending: [],
-  completed: []
-})
-const clickedBtnId = ref('1')
+const todos = ref([])
+const visibility = ref('all')
 const btnList = ref([
-  { id: 1, text: '全部', completed: false },
-  { id: 2, text: '待完成', completed: false },
-  { id: 3, text: '已完成', completed: false }
+  { id: 1, text: '全部', value: 'all' },
+  { id: 2, text: '待完成', value: 'pending' },
+  { id: 3, text: '已完成', value: 'completed' }
 ])
-const cacheTodo = ref({})
+const cacheTodo = reactive({})
 const cacheTitle = ref('')
 
 const filteredTodos = computed(() => {
-  switch (clickedBtnId.value) {
-    case 1:
-      return todoList.all
-    case 2:
-      return todoList.pending
-    case 3:
-      return todoList.completed
+  switch (visibility.value) {
+    case 'all':
+      return todos.value
+    case 'pending':
+      return todos.value.filter((item) => !item.completed)
+    case 'completed':
+      return todos.value.filter((item) => item.completed)
     default:
-      return []
+      return todos.value
   }
+})
+
+const pendingTodosLength = computed(() => {
+  return todos.value.filter((item) => !item.completed).length
+})
+const completedTodosLength = computed(() => {
+  return todos.value.filter((item) => item.completed).length
 })
 
 const process = computed(() => {
-  if (todoLists.value.length <= 0) {
+  if (todos.value.length <= 0) {
     return 0
   }
-  return Math.floor((todoList.completed.length / todoLists.value.length) * 100) + '%'
+
+  return XEUtils.round((completedTodosLength.value / todos.value.length) * 100, 2) + '%'
 })
 
-watch(
-  todoList,
-  () => {
-    updateStorage()
-  },
-  { deep: true }
-)
-
 function getToday() {
-  today.value = `${day.toLocaleDateString()} ${day.toLocaleString(navigator.language, {
-    weekday: 'long'
-  })}`
-}
-
-function changeStatus(btn) {
-  btnList.value.forEach((tab) => {
-    tab.completed = false
-  })
-  btn.completed = true
-  clickedBtnId.value = btn.id
-  switch (btn.id) {
-    case 1:
-      todoList.all = todoLists.value
-      break
-    case 2:
-      todoList.pending = todoLists.value.filter((item) => !item.completed)
-      break
-    case 3:
-      todoList.completed = todoLists.value.filter((item) => item.completed)
-      break
-    default:
-      break
-  }
-  console.log('todoList', todoList)
+  today.value = XEUtils.toDateString(new Date(), 'yyyy/M/d')
 }
 
 function addTodoItem() {
   if (newTodo.value === '') {
-    alert(`請輸入文字`)
+    sweetAlert.typicalType('提示', '請輸入文字', 'warning', true)
+
     return
   }
-  todoLists.value.push({
-    id: `NO${new Date().getTime()}`,
+  todos.value.push({
+    id: `NO${XEUtils.timestamp(new Date())}`,
     text: newTodo.value,
     completed: false,
     editing: false
@@ -200,39 +191,56 @@ function addTodoItem() {
   updateStorage()
 }
 
+function getIndex(id) {
+  return todos.value.findIndex((list) => list.id === id)
+}
+
+function changeCompleted(id) {
+  const index = getIndex(id)
+  todos.value[index].completed = !todos.value[index].completed
+}
+
 function editTodo(item) {
-  console.log('item', item)
   cacheTitle.value = item.text
-  cacheTodo.value = item
+  Object.assign(cacheTodo, { ...item })
   item.editing = false
 }
 
 function removeItem(id) {
-  const index = todoLists.value.findIndex((list) => list.id === id)
-  todoLists.value.splice(index, 1)
-  updateStorage()
+  sweetAlert.twoLayerCheckType().then((result) => {
+    if (result.isConfirmed) {
+      Swal.fire('Deleted!', 'Your file has been deleted.', 'success', false)
+      const index = getIndex(id)
+      todos.value.splice(index, 1)
+      updateStorage()
+    } else if (result.isDenied) {
+      console.log('取消')
+    }
+  })
 }
-
 function deleteAllTodoItem() {
-  if (!todoLists.value.length) {
-    return alert(`目前無任務可以刪除`)
+  if (!todos.value.length) {
+    return sweetAlert.typicalType('注意', '目前無任務可以刪除', 'error', `Continue → `)
   }
-  const res = confirm('你確定要刪除全部任務嗎? 刪除了將找不回資料~')
-  if (res) {
-    localStorage.removeItem('todoList')
-    todoLists.value = []
-    alert('已完成刪除動作')
-  }
+  sweetAlert.twoLayerCheckType().then((result) => {
+    if (result.isConfirmed) {
+      localStorage.removeItem('todoList')
+      todos.value = []
+      sweetAlert.typicalType('完成', '已完成刪除動作', 'success', false)
+    } else if (result.isDenied) {
+      console.log('取消')
+    }
+  })
 }
 
 function updateStorage() {
-  localStorage.setItem('todoList', JSON.stringify(todoLists.value))
+  localStorage.setItem('todoList', JSON.stringify(todos.value))
 }
 
 onMounted(() => {
   getToday()
   if (localStorage.getItem('todoList') != null) {
-    todoLists.value = JSON.parse(localStorage.getItem('todoList'))
+    todos.value = JSON.parse(localStorage.getItem('todoList'))
   }
 })
 </script>
