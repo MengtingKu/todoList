@@ -9,3 +9,9 @@ $font_sizes: (
   normal: 1.2rem,
   small: 0.9rem,
 );
+
+@mixin iphone {
+  @media (max-width:575px) {
+      @content
+  }
+}

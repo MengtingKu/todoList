@@ -1,5 +1,6 @@
 <template>
-  <div class="container shadow rounded all">
+  <Loading v-if="isLoading" />
+  <div v-else class="container-md shadow rounded all">
     <header class="header">
       <div class="row d-flex align-items-center justify-content-between">
         <div class="col-md-8">
@@ -130,7 +131,9 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import XEUtils from 'xe-utils'
 import Swal from 'sweetalert2'
 import sweetAlert from '@/mixin/sweetAlert'
+import Loading from '@/components/loadingStyle.vue'
 
+const isLoading = ref(false)
 const today = ref('')
 const newTodo = ref('')
 const todos = ref([])
@@ -173,6 +176,7 @@ const process = computed(() => {
 
 function getToday() {
   today.value = XEUtils.toDateString(new Date(), 'yyyy/M/d')
+  isLoading.value = false
 }
 
 function addTodoItem() {
@@ -238,6 +242,7 @@ function updateStorage() {
 }
 
 onMounted(() => {
+  isLoading.value = true
   getToday()
   if (localStorage.getItem('todoList') != null) {
     todos.value = JSON.parse(localStorage.getItem('todoList'))

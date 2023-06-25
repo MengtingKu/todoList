@@ -1,8 +1,11 @@
 .all {
   background: $todo_backgroundColor;
-  width: 960px;
+  width: 800px;
   padding: 40px 40px;
   transition: 0.5s;
+  @include iphone() {
+    width: 600px;
+  }
 }
 .header {
   margin-top: 1rem;
@@ -24,6 +27,9 @@
     animation: typing 3s steps(9), caret 1s steps(1) infinite;
     color: $blue1;
     font-size: map-get($font_sizes, super-big);
+    @include iphone() {
+      display: none;
+    }
   }
   .subtitle {
     text-align: right;
@@ -79,14 +85,14 @@
     }
   }
   .list_content {
-    @media (max-width: 575px) {
+    @include iphone() {
       padding: 0.5rem 1rem 0.5rem 0.5rem;
     }
   }
   .list {
     li {
       padding-right: 2rem;
-      @media (max-width: 575px) {
+      @include iphone() {
         padding-right: 0;
       }
       .list_function {
@@ -111,7 +117,7 @@
       color: #9f9a91;
       text-decoration: none;
     }
-    @media (max-width: 575px) {
+    @include iphone() {
       padding: 1.5rem 0 1rem 0.5rem;
     }
   }
@@ -124,7 +130,7 @@
       padding: 1rem 0;
       border-bottom: 1px solid #eee;
       line-height: 1.5;
-      @media (max-width: 575px) {
+      @include iphone() {
         padding-right: 1rem;
       }
     }
@@ -137,14 +143,14 @@
       width: 100%;
       margin: 0;
     }
-    input[type="text"]{
+    input[type="text"] {
       outline: none;
       border: 1px solid #ccc;
       height: 30px;
       border-radius: 3px;
       padding: 0 10px;
       font-size: 16px;
-      &:focus{
+      &:focus {
         border: 2px solid $blue2;
       }
     }
@@ -195,4 +201,3 @@
 .completed {
   text-decoration: line-through;
 }
-
